@@ -8,7 +8,7 @@ import Estados from "../page/Estados";
 import Canales from "../page/Canales";
 import Comunidades from "../page/Comunidades";
 import Ajustes from "../page/Ajustes";
-import Perfil from "../page/Perfi";
+import Perfil from "../page/Perfil";
 import Login from "../components/Login";
 
 export default function AppRouter() {
