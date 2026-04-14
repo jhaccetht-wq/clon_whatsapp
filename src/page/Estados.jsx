@@ -122,7 +122,7 @@ export default function Estados() {
                 </div>
             </div>
 
-            {
+            
             <div className={`
                 ${estadoViendo ? "flex" : "hidden"} md:flex
                 flex-1 bg-[#F7F5F3] flex-col items-center justify-center
@@ -145,7 +145,7 @@ export default function Estados() {
                         </div>
                         <img
                             src={estadoViendo.imagen}
-                            alt="estado"
+                            alt={estadoViendo.nombre}
                             className="max-h-[80vh] max-w-[90%] md:max-w-[80%] object-contain rounded-xl"
                         />
                     </div>

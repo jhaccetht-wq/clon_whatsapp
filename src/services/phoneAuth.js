@@ -1,42 +1,82 @@
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
-import { auth } from "../config/firebase";
+// import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+// import { auth } from "../config/firebase";
+
+// let confirmationResult = null;
+
+// // Inicializar reCAPTCHA
+
+
+// export const setupRecaptcha = () => {
+//   if (!window.recaptchaVerifier) {
+//     window.recaptchaVerifier = new RecaptchaVerifier(
+//       auth, // 👈 IMPORTANTE (ANTES IBA MAL)
+//       "recaptcha-container",
+//       {
+//         size: "invisible",
+//       }
+//     );
+//   }
+// };
+
+// // Enviar código SMS
+// export const sendCode = async (phoneNumber) => {
+//   setupRecaptcha();
+
+//   const appVerifier = window.recaptchaVerifier;
+
+//   confirmationResult = await signInWithPhoneNumber(
+//     auth,
+//     phoneNumber,
+//     appVerifier
+//   );
+
+//   return true;
+// };
+
+// // Verificar código
+// export const verifyCode = async (code) => {
+//   if (!confirmationResult) throw new Error("Primero envía el código");
+
+//   const result = await confirmationResult.confirm(code);
+//   return result.user;
+// };
+
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { auth } from '../config/firebase';
 
 let confirmationResult = null;
 
-// Inicializar reCAPTCHA
-
-
-export const setupRecaptcha = () => {
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new RecaptchaVerifier(
-      auth, // 👈 IMPORTANTE (ANTES IBA MAL)
-      "recaptcha-container",
-      {
-        size: "invisible",
-      }
-    );
+export async function sendCode(phoneNumber) {
+  if (window.recaptchaVerifier) {
+    window.recaptchaVerifier.clear();
+    window.recaptchaVerifier = null;
   }
-};
 
-// Enviar código SMS
-export const sendCode = async (phoneNumber) => {
-  setupRecaptcha();
+  window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+    size: 'invisible',
+    callback: (response) => {
+      console.log('reCAPTCHA resuelto', response);
+    },
+    'expired-callback': () => {
+      window.recaptchaVerifier?.clear();
+      window.recaptchaVerifier = null;
+    }
+  });
 
-  const appVerifier = window.recaptchaVerifier;
+  // Forzar render antes de enviar
+  await window.recaptchaVerifier.render();
 
   confirmationResult = await signInWithPhoneNumber(
     auth,
     phoneNumber,
-    appVerifier
+    window.recaptchaVerifier
   );
 
-  return true;
-};
+  return confirmationResult;
+}
 
-// Verificar código
-export const verifyCode = async (code) => {
-  if (!confirmationResult) throw new Error("Primero envía el código");
-
+export async function verifyCode(code) {
+  if (!confirmationResult) throw new Error('Primero debes enviar el código.');
   const result = await confirmationResult.confirm(code);
   return result.user;
-};
+}
