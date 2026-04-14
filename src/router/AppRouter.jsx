@@ -12,8 +12,19 @@ import Perfil from "../page/Perfil";
 import Login from "../components/Login";
 
 export default function AppRouter() {
-  const [autenticado, setAutenticado] = useState(false);
-  const handleLogout = () => setAutenticado(false);
+  const [autenticado, setAutenticado] = useState(
+    () => localStorage.getItem("autenticado") === "true"
+  );
+
+  const handleLogin = () => {
+    localStorage.setItem("autenticado", "true");
+    setAutenticado(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("autenticado");
+    setAutenticado(false);
+  };
 
   return (
     <UserProvider>
@@ -24,7 +35,7 @@ export default function AppRouter() {
             element={
               autenticado
                 ? <Navigate to="/" replace />
-                : <Login onLogin={() => setAutenticado(true)} />
+                : <Login onLogin={handleLogin} />
             }
           />
           <Route
