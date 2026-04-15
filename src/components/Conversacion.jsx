@@ -20,6 +20,7 @@ import {
 } from "firebase/firestore"
 import { db } from "../config/firebase"
 import fondo from "../assets/img/FondoW.jpg"
+import { timestampAdd } from "firebase/firestore/pipelines"
 
 export default function Conversacion({ contacto, usuarioActual, onBack }) {
 
@@ -121,7 +122,7 @@ export default function Conversacion({ contacto, usuarioActual, onBack }) {
       await addDoc(collection(db, "chats", chatId, "messages"), {
         texto,
         de: usuarioActual?.telefono,
-        fecha: serverTimestamp(),
+        fecha: timestampAdd(),
         leido: false,
       })
     } catch (err) {
