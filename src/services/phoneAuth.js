@@ -1,48 +1,6 @@
-// import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
-// import { auth } from "../config/firebase";
-
-// let confirmationResult = null;
-
-// // Inicializar reCAPTCHA
-
-
-// export const setupRecaptcha = () => {
-//   if (!window.recaptchaVerifier) {
-//     window.recaptchaVerifier = new RecaptchaVerifier(
-//       auth, // 👈 IMPORTANTE (ANTES IBA MAL)
-//       "recaptcha-container",
-//       {
-//         size: "invisible",
-//       }
-//     );
-//   }
-// };
-
-// // Enviar código SMS
-// export const sendCode = async (phoneNumber) => {
-//   setupRecaptcha();
-
-//   const appVerifier = window.recaptchaVerifier;
-
-//   confirmationResult = await signInWithPhoneNumber(
-//     auth,
-//     phoneNumber,
-//     appVerifier
-//   );
-
-//   return true;
-// };
-
-// // Verificar código
-// export const verifyCode = async (code) => {
-//   if (!confirmationResult) throw new Error("Primero envía el código");
-
-//   const result = await confirmationResult.confirm(code);
-//   return result.user;
-// };
-
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 
 let confirmationResult = null;
 
@@ -54,16 +12,13 @@ export async function sendCode(phoneNumber) {
 
   window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
     size: 'invisible',
-    callback: (response) => {
-      console.log('reCAPTCHA resuelto', response);
-    },
+    callback: () => {},
     'expired-callback': () => {
       window.recaptchaVerifier?.clear();
       window.recaptchaVerifier = null;
     }
   });
 
-  // Forzar render antes de enviar
   await window.recaptchaVerifier.render();
 
   confirmationResult = await signInWithPhoneNumber(
@@ -77,6 +32,33 @@ export async function sendCode(phoneNumber) {
 
 export async function verifyCode(code) {
   if (!confirmationResult) throw new Error('Primero debes enviar el código.');
+
   const result = await confirmationResult.confirm(code);
-  return result.user;
+  const firebaseUser = result.user;
+
+  // Buscar si ya existe en Firestore
+  const q = query(
+    collection(db, "users"),
+    where("telefono", "==", firebaseUser.phoneNumber)
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    // NUEVO usuario → crear documento
+    const nuevoRef = doc(collection(db, "users"));
+    await setDoc(nuevoRef, {
+      telefono: firebaseUser.phoneNumber,
+      nombre: firebaseUser.phoneNumber,
+      foto: "",
+      Estado: "Hey, estoy usando WhatsApp",
+      online: true,
+      creadoEn: serverTimestamp(),
+    });
+    console.log("✅ Usuario nuevo guardado:", nuevoRef.id);
+  } else {
+    // Usuario EXISTENTE → no tocar nada
+    console.log("✅ Usuario ya existe:", snapshot.docs[0].id);
+  }
+
+  return firebaseUser;
 }

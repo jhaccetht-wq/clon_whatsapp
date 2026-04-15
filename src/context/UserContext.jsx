@@ -1,7 +1,7 @@
 // src/context/UserContext.jsx
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
 
 const UserContext = createContext(null);
@@ -11,29 +11,54 @@ export function UserProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        
-        const q = query(
-          collection(db, "users"),
-          where("telefono", "==", firebaseUser.phoneNumber)
-        );
-        const snapshot = await getDocs(q);
+    let unsubFirestore = null;
 
-        if (!snapshot.empty) {
-          const docSnap = snapshot.docs[0];
-          setUserData({
-            docId: docSnap.id,       
-            ...docSnap.data()         
-          });
-        }
+    const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
+      if (unsubFirestore) unsubFirestore();
+
+      if (firebaseUser) {
+        const docRef = doc(db, "users", firebaseUser.uid);
+
+        unsubFirestore = onSnapshot(docRef, async (snap) => {
+          if (snap.exists()) {
+            setUserData({ docId: snap.id, ...snap.data() });
+          } else {
+            // El documento no existe → crearlo ahora
+            await setDoc(docRef, {
+              telefono: firebaseUser.phoneNumber,
+              nombre: firebaseUser.phoneNumber,
+              foto: "",
+              Estado: "Hey, estoy usando WhatsApp",
+              online: true,
+              creadoEn: serverTimestamp(),
+            });
+          }
+
+          // Marcar online usando setDoc+merge para no fallar si no existe
+          await setDoc(docRef, {
+            online: true,
+            ultimaVez: serverTimestamp(),
+          }, { merge: true });
+
+          setLoading(false);
+        });
+
+        const offlineListener = () => {
+          setDoc(docRef, { online: false, ultimaVez: serverTimestamp() }, { merge: true });
+        };
+        window.addEventListener("beforeunload", offlineListener);
+
+        return () => window.removeEventListener("beforeunload", offlineListener);
       } else {
         setUserData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsub();
+    return () => {
+      unsubAuth();
+      if (unsubFirestore) unsubFirestore();
+    };
   }, []);
 
   return (

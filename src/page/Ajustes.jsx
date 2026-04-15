@@ -5,8 +5,10 @@ import {
   MdLock, MdLogout, MdNotifications, MdSettings, MdArrowBack, MdChevronRight
 } from "react-icons/md";
 import { FiSearch } from "react-icons/fi";
+import { useUser } from "../context/UserContext";
 
 export default function Ajustes({ onLogout }) {
+  const { userData } = useUser();
   const [activo, setActivo] = useState(false);
   const [view, setView] = useState("main");
   const inputRef = useRef(null);
@@ -29,10 +31,9 @@ export default function Ajustes({ onLogout }) {
   ];
 
   return (
-    // En móvil: solo la columna izquierda ocupa toda la pantalla
     <div className="flex h-[calc(100vh-56px)] md:h-screen">
 
-      {/* SIDEBAR — en móvil ocupa todo el ancho */}
+      {/* SIDEBAR */}
       <div className="w-full md:w-[380px] md:flex-shrink-0 border-r flex flex-col relative overflow-hidden border-gray-200">
 
         {/* PANEL PRINCIPAL */}
@@ -53,11 +54,20 @@ export default function Ajustes({ onLogout }) {
             <FiSearch className="absolute left-6 top-3.5 text-gray-500" size={15} />
           </div>
 
+          {/* ── Avatar + nombre + estado del usuario logueado ── */}
           <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 cursor-pointer">
-            <img src="https://www.gravatar.com/avatar/?d=mp" className="w-12 h-12 rounded-full" />
+            <img
+              src={userData?.foto || "https://www.gravatar.com/avatar/?d=mp"}
+              className="w-12 h-12 rounded-full object-cover"
+              alt="avatar"
+            />
             <div>
-              <p className="font-medium text-[15px]">Adrian Toro</p>
-              <p className="text-sm text-gray-500">Ocupado</p>
+              <p className="font-medium text-[15px]">
+                {userData?.nombre || "Sin nombre"}
+              </p>
+              <p className="text-sm text-gray-500">
+                {userData?.Estado || "Hey, estoy usando WhatsApp"}
+              </p>
             </div>
           </div>
 
@@ -93,12 +103,12 @@ export default function Ajustes({ onLogout }) {
 
         {/* SUBPANELES */}
         {[
-          { id: "account", title: "Cuenta", content: <AccountContent /> },
-          { id: "privacy", title: "Privacidad", content: <PrivacyContent /> },
-          { id: "chats", title: "Chats", content: <ChatsContent /> },
-          { id: "notifications", title: "Notificaciones", content: <NotificationsContent /> },
-          { id: "keyboard", title: "Atajos del teclado", content: <KeyboardContent /> },
-          { id: "help", title: "Ayuda y comentarios", content: <HelpContent /> },
+          { id: "account",       title: "Cuenta",              content: <AccountContent /> },
+          { id: "privacy",       title: "Privacidad",          content: <PrivacyContent /> },
+          { id: "chats",         title: "Chats",               content: <ChatsContent /> },
+          { id: "notifications", title: "Notificaciones",      content: <NotificationsContent /> },
+          { id: "keyboard",      title: "Atajos del teclado",  content: <KeyboardContent /> },
+          { id: "help",          title: "Ayuda y comentarios", content: <HelpContent /> },
         ].map(panel => (
           <div key={panel.id}
             className={`absolute inset-0 flex flex-col bg-white transition-transform duration-250
@@ -112,7 +122,7 @@ export default function Ajustes({ onLogout }) {
         ))}
       </div>
 
-      {/* PANEL DERECHO — solo visible en desktop */}
+      {/* PANEL DERECHO desktop */}
       <div className="hidden md:flex flex-1 bg-[#F7F5F3] items-center justify-center flex-col gap-3 text-gray-400">
         <MdSettings size={64} className="opacity-60" />
         <p className="text-lg">Ajustes</p>
