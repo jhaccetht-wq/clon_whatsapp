@@ -1,4 +1,3 @@
-// src/router/AppRouter.jsx
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { useState } from "react";
 import { UserProvider } from "../context/UserContext";

@@ -1,4 +1,3 @@
-// src/page/Ajustes.jsx
 import { useEffect, useRef, useState } from "react";
 import {
   MdAccountCircle, MdChat, MdHelpOutline, MdKeyboard,

@@ -1,4 +1,3 @@
-// src/components/Menu.jsx
 import { useState } from "react";
 import { BsChatDots } from "react-icons/bs";
 import { MdChat, MdDonutLarge, MdGroup, MdSettings } from "react-icons/md";

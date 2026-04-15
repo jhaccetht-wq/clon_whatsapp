@@ -34,7 +34,6 @@ export function UserProvider({ children }) {
             });
           }
 
-          // Marcar online usando setDoc+merge para no fallar si no existe
           await setDoc(docRef, {
             online: true,
             ultimaVez: serverTimestamp(),
