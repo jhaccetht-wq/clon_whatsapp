@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
-import { sendCode, verifyCode } from "../services/phoneAuth";
-
+import { sendCode, verifyCode } from "../config/phoneAuth";
 export default function Login({ onLogin }) {
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState("");
@@ -79,7 +78,7 @@ export default function Login({ onLogin }) {
         </p>
       </div>
 
-      {/* Panel derecho */}
+      
       <div className="flex-1 flex flex-col items-center justify-center bg-[#f0f2f5] px-4 py-8 md:px-8">
         <div className="bg-white w-full max-w-sm rounded-2xl shadow-sm p-6 md:p-8">
 
