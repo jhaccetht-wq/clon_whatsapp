@@ -1,4 +1,4 @@
-// src/page/Estados.jsx
+
 import { useEffect, useRef, useState } from "react";
 import { AiOutlinePlusCircle } from "react-icons/ai";
 import { BsThreeDotsVertical } from "react-icons/bs";
@@ -28,11 +28,10 @@ export default function Estados() {
     }, [])
 
     return (
-        // h total descontando la barra inferior en móvil
+        
         <div className="flex h-[calc(100vh-56px)] md:h-screen">
 
-            {/* ── Columna izquierda (lista) ──
-                En móvil: oculta cuando hay estado viendo */}
+         
             <div className={`
                 ${estadoViendo ? "hidden" : "flex"} md:flex
                 w-full md:w-[380px] md:flex-shrink-0
@@ -58,7 +57,7 @@ export default function Estados() {
                     </div>
                 </div>
 
-                {/* Mi estado */}
+                
                 <div className="px-2 mt-4">
                     <div
                         className="relative flex w-full pl-3 gap-4 items-center hover:bg-gray-100 rounded-xl py-2 transition cursor-pointer"
@@ -129,7 +128,7 @@ export default function Estados() {
             `}>
                 {estadoViendo ? (
                     <div className="relative w-full h-full flex flex-col items-center justify-center bg-black">
-                        {/* Botón cerrar */}
+                      
                         <button
                             onClick={() => setEstadoViendo(null)}
                             className="absolute top-4 right-4 text-white bg-black/40 p-2 rounded-full hover:bg-black/60 transition z-10">

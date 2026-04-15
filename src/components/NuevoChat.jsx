@@ -1,4 +1,3 @@
-// src/components/NuevoChat.jsx
 import { useEffect, useState } from "react"
 import { FiSearch } from "react-icons/fi"
 import { IoArrowBack } from "react-icons/io5"

@@ -1,4 +1,3 @@
-// src/page/Canales.jsx
 import { useState } from "react";
 import { BsPlusCircle } from "react-icons/bs";
 import { FiSearch } from "react-icons/fi";

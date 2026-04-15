@@ -1,7 +1,6 @@
 import { BsPlusCircle } from "react-icons/bs";
 import { MdGroup } from "react-icons/md";
 
-// ── Datos estáticos de las comunidades ──
 const COMUNIDADES = [
     {
         id: 1,
@@ -31,10 +30,10 @@ export default function Comunidades() {
     return (
         <div className="flex h-screen">
 
-            {/* ── Columna izquierda ── */}
+          
             <div className="w-[380px] flex-shrink-0 flex flex-col border-r border-gray-200">
 
-                {/* Encabezado */}
+                
                 <div className="flex justify-between items-center px-4 pt-5 pb-4">
                     <span className="text-xl font-semibold">Comunidades</span>
                     <button className="p-2 rounded-full hover:bg-gray-200 transition cursor-pointer">
@@ -42,7 +41,6 @@ export default function Comunidades() {
                     </button>
                 </div>
 
-                {/* Botón nueva comunidad — igual al WhatsApp real */}
                 <div className="flex items-center gap-3 px-4 py-3 hover:bg-[#F6F5F4] cursor-pointer border-b border-gray-100 transition">
                     <div className="w-12 h-12 rounded-full bg-[#00a884] flex items-center justify-center flex-shrink-0">
                         <BsPlusCircle size={22} className="text-white" />
@@ -82,7 +80,6 @@ export default function Comunidades() {
                                     </div>
                                 ))}
 
-                                {/* Ver todos */}
                                 <span className="text-sm text-[#00a884] font-semibold pl-2 cursor-pointer hover:underline block mt-1 mb-1">
                                     Ver todos
                                 </span>
