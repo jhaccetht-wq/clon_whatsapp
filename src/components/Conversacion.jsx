@@ -1,16 +1,22 @@
 // src/components/Conversacion.jsx
-import { BsThreeDotsVertical } from "react-icons/bs";
-import { IoChevronDown, IoMic, IoSearchOutline, IoSend, IoVideocamOutline, IoArrowBack } from "react-icons/io5";
+import { BsCheck, BsCheck2, BsCheck2All, BsThreeDotsVertical } from "react-icons/bs";
+import { IoChevronDown, IoMic, IoSearchOutline, IoSend, IoVideocamOutline, IoArrowBack, IoClose } from "react-icons/io5";
 import fondo from "../assets/img/FondoW.jpg"
 import { HiPlus } from "react-icons/hi";
 import { TbSticker } from "react-icons/tb";
 import { useEffect, useRef, useState } from "react";
-import { MdOutlineAddReaction, MdOutlineCameraAlt, MdOutlineEvent, MdOutlineInsertDriveFile, MdOutlineMic, MdOutlinePerson, MdOutlinePhotoLibrary, MdOutlinePoll } from "react-icons/md";
+import {
+    MdOutlineAddReaction, MdOutlineCameraAlt, MdOutlineEvent,
+    MdOutlineInsertDriveFile, MdOutlineMic, MdOutlinePerson,
+    MdOutlinePhotoLibrary, MdOutlinePoll
+} from "react-icons/md";
 import EmojiPicker from "emoji-picker-react";
 import {
-    collection, addDoc, onSnapshot, orderBy, query, serverTimestamp
+    collection, addDoc, onSnapshot, orderBy, query,
+    serverTimestamp, doc, updateDoc
 } from "firebase/firestore"
 import { db } from "../config/firebase"
+
 export default function Conversacion({ contacto, usuarioActual, onBack }) {
 
     const [mensajes, setMensajes] = useState([])
@@ -19,61 +25,103 @@ export default function Conversacion({ contacto, usuarioActual, onBack }) {
     const [mostrarNombre, setMostrarNombre] = useState("")
     const [mostrarEmoji, setMostrarEmoji] = useState(false)
     const [menuPuntos, setMenuPuntos] = useState(false)
+    const [enviando, setEnviando] = useState(false)
+    const [inputAlto, setInputAlto] = useState(false) // para textarea multilinea
 
     const menuRef = useRef(null)
     const emojiRef = useRef(null)
     const bottomRef = useRef(null)
+    const inputRef = useRef(null)
+    const menupuntosRef = useRef(null)
 
     const menuItems = [
-        { icon: <MdOutlineInsertDriveFile size={24} color="#00a884" />, label: "Documento" },
-        { icon: <MdOutlinePhotoLibrary size={24} color="#00a884" />, label: "Fotos y videos" },
-        { icon: <MdOutlineCameraAlt size={24} color="#00a884" />, label: "Cámara" },
-        { icon: <MdOutlineMic size={24} color="#00a884" />, label: "Audio" },
-        { icon: <MdOutlinePerson size={24} color="#00a884" />, label: "Contacto" },
-        { icon: <MdOutlinePoll size={24} color="#00a884" />, label: "Encuesta" },
-        { icon: <MdOutlineEvent size={24} color="#00a884" />, label: "Evento" },
-        { icon: <MdOutlineAddReaction size={24} color="#00a884" />, label: "Nuevo sticker" },
+        { icon: <MdOutlineInsertDriveFile size={22} color="#00a884" />, label: "Documento" },
+        { icon: <MdOutlinePhotoLibrary size={22} color="#00a884" />, label: "Fotos y videos" },
+        { icon: <MdOutlineCameraAlt size={22} color="#00a884" />, label: "Cámara" },
+        { icon: <MdOutlineMic size={22} color="#00a884" />, label: "Audio" },
+        { icon: <MdOutlinePerson size={22} color="#00a884" />, label: "Contacto" },
+        { icon: <MdOutlinePoll size={22} color="#00a884" />, label: "Encuesta" },
+        { icon: <MdOutlineEvent size={22} color="#00a884" />, label: "Evento" },
+        { icon: <MdOutlineAddReaction size={22} color="#00a884" />, label: "Nuevo sticker" },
     ]
 
+    const opcionesMenuPuntos = [
+        "Datos del contacto",
+        "Seleccionar mensajes",
+        "Silenciar notificaciones",
+        "Desaparecer mensajes",
+        "Limpiar mensajes",
+        "Eliminar chat",
+        "Reportar",
+        "Bloquear",
+    ]
+
+    // Genera el chatId consistente entre dos usuarios
     const getChatId = () => {
         const a = usuarioActual?.telefono || ""
         const b = contacto?.telefono || ""
         return [a, b].sort().join("_")
     }
 
+    // Escuchar mensajes en tiempo real
     useEffect(() => {
         if (!contacto || !usuarioActual) return
         const chatId = getChatId()
-        const q = query(collection(db, "chats", chatId, "messages"), orderBy("fecha", "asc"))
+        const q = query(
+            collection(db, "chats", chatId, "messages"),
+            orderBy("fecha", "asc")
+        )
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const lista = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+            const lista = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
             setMensajes(lista)
         })
         return () => unsubscribe()
-    }, [contacto, usuarioActual])
+    }, [contacto?.telefono, usuarioActual?.telefono])
 
+    // Auto-scroll al último mensaje
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" })
     }, [mensajes])
 
+    // Cerrar menús al hacer click fuera
     useEffect(() => {
         function handleClickOutside(event) {
             if (menuRef.current && !menuRef.current.contains(event.target)) setAbrirMenu(false)
             if (emojiRef.current && !emojiRef.current.contains(event.target)) setMostrarEmoji(false)
+            if (menupuntosRef.current && !menupuntosRef.current.contains(event.target)) setMenuPuntos(false)
         }
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
 
+    // Enfocar input al abrir conversación
+    useEffect(() => {
+        inputRef.current?.focus()
+    }, [contacto?.telefono])
+
     const enviarMensaje = async () => {
-        if (!mensaje.trim()) return
-        const chatId = getChatId()
-        await addDoc(collection(db, "chats", chatId, "messages"), {
-            texto: mensaje,
-            de: usuarioActual?.telefono,
-            fecha: serverTimestamp()
-        })
-        setMensaje("")
+        const texto = mensaje.trim()
+        if (!texto || enviando) return
+
+        setMensaje("")         // limpiar input INMEDIATAMENTE
+        setEnviando(true)
+        inputRef.current?.focus()
+
+        try {
+            const chatId = getChatId()
+            await addDoc(collection(db, "chats", chatId, "messages"), {
+                texto,
+                de: usuarioActual?.telefono,
+                fecha: serverTimestamp(),
+                leido: false,
+            })
+        } catch (err) {
+            console.error("Error enviando mensaje:", err)
+            // Si falla, restaurar el texto
+            setMensaje(texto)
+        } finally {
+            setEnviando(false)
+        }
     }
 
     const handleKeyDown = (e) => {
@@ -83,151 +131,304 @@ export default function Conversacion({ contacto, usuarioActual, onBack }) {
         }
     }
 
+    // Agrupar mensajes por fecha
+    const agruparPorFecha = (msgs) => {
+        const grupos = []
+        let fechaActual = null
+
+        msgs.forEach((msg) => {
+            if (!msg.fecha) return
+            const d = msg.fecha.toDate ? msg.fecha.toDate() : new Date(msg.fecha)
+            const fechaStr = d.toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" })
+
+            if (fechaStr !== fechaActual) {
+                fechaActual = fechaStr
+                grupos.push({ tipo: "fecha", label: formatearFechaGrupo(d), key: `fecha-${fechaStr}` })
+            }
+            grupos.push({ tipo: "mensaje", ...msg })
+        })
+        return grupos
+    }
+
+    const formatearFechaGrupo = (d) => {
+        const hoy = new Date()
+        const ayer = new Date(); ayer.setDate(hoy.getDate() - 1)
+        if (d.toDateString() === hoy.toDateString()) return "Hoy"
+        if (d.toDateString() === ayer.toDateString()) return "Ayer"
+        return d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+    }
+
     const formatearHora = (fecha) => {
         if (!fecha) return ""
         const d = fecha.toDate ? fecha.toDate() : new Date(fecha)
         return d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })
     }
 
-    return (
-        <div className="w-full h-full flex flex-col">
+    const items = agruparPorFecha(mensajes)
 
-            {/* Header */}
-            <div className="w-full h-16 bg-white flex pr-2 items-center justify-between border-b border-gray-200 shadow-sm z-10">
-                <div className="flex items-center gap-2 ml-2">
+    return (
+        <div className="w-full h-full flex flex-col relative">
+
+            {/* ── HEADER ── */}
+            <div className="w-full h-16 bg-[#f0f2f5] flex pr-2 items-center justify-between border-b border-gray-200 z-10 flex-shrink-0">
+                <div className="flex items-center gap-1 ml-1">
+                    {/* Botón back solo en móvil */}
                     {onBack && (
-                        <button onClick={onBack} className="md:hidden p-2 rounded-full hover:bg-gray-100 transition">
+                        <button
+                            onClick={onBack}
+                            className="md:hidden p-2 rounded-full hover:bg-gray-200 transition"
+                        >
                             <IoArrowBack className="text-xl text-gray-600" />
                         </button>
                     )}
-                    <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-lg transition">
-                        <img
-                            src={contacto?.foto || "https://www.gravatar.com/avatar/?d=mp"}
-                            alt={contacto?.nombre}
-                            className="w-10 h-10 rounded-full object-cover"
-                            onError={(e) => { e.target.src = "https://www.gravatar.com/avatar/?d=mp" }}
-                        />
+
+                    {/* Avatar + nombre */}
+                    <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-200 px-2 py-1 rounded-lg transition">
+                        <div className="relative">
+                            <img
+                                src={contacto?.foto || "https://www.gravatar.com/avatar/?d=mp"}
+                                alt={contacto?.nombre}
+                                className="w-10 h-10 rounded-full object-cover"
+                                onError={(e) => { e.target.src = "https://www.gravatar.com/avatar/?d=mp" }}
+                            />
+                            {contacto?.online && (
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#f0f2f5]" />
+                            )}
+                        </div>
                         <div className="flex flex-col">
-                            <span className="font-semibold text-[#111b21] text-sm leading-tight">{contacto?.nombre}</span>
+                            <span className="font-semibold text-[#111b21] text-[15px] leading-tight">
+                                {contacto?.nombre || contacto?.telefono}
+                            </span>
                             <span className="text-xs text-gray-500 leading-tight">
-                                {contacto?.online ? "En línea" : contacto?.Estado || ""}
+                                {contacto?.online ? "en línea" : (contacto?.Estado || "")}
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1 md:gap-3">
-                    <button className="hidden sm:flex items-center border-gray-400 border px-4 py-2 rounded-full gap-3 hover:bg-gray-100 transition cursor-pointer">
-                        <IoVideocamOutline className="text-xl" />
-                        <span className="font-medium">Llamar</span>
-                        <IoChevronDown className="text-lg pt-1" />
+                {/* Acciones del header */}
+                <div className="flex items-center gap-1">
+                    {/* Llamar — desktop */}
+                    <button className="hidden sm:flex items-center border border-gray-400 px-4 py-1.5 rounded-full gap-2 hover:bg-gray-200 transition text-sm font-medium text-gray-700">
+                        <IoVideocamOutline className="text-lg" />
+                        <span>Llamar</span>
+                        <IoChevronDown className="text-sm" />
                     </button>
-                    <button className="sm:hidden p-2 rounded-full hover:bg-gray-100 transition">
-                        <IoVideocamOutline className="text-xl" />
+                    {/* Llamar — móvil */}
+                    <button className="sm:hidden p-2 rounded-full hover:bg-gray-200 transition">
+                        <IoVideocamOutline className="text-xl text-gray-600" />
                     </button>
-                    <button className="p-2 relative rounded-full hover:bg-gray-200 transition cursor-pointer"
-                        onMouseEnter={() => setMostrarNombre("Buscar")} onMouseLeave={() => setMostrarNombre("")}>
-                        <IoSearchOutline className="text-xl" />
-                        {mostrarNombre === "Buscar" && (
-                            <span className="absolute top-9 -left-1 bg-[#242626] text-white font-semibold text-xs py-1 px-2 rounded whitespace-nowrap">Buscar</span>
-                        )}
-                    </button>
-                    <button className="relative p-2 rounded-full hover:bg-gray-200 transition cursor-pointer"
-                        onMouseEnter={() => setMostrarNombre("Opciones")} onMouseLeave={() => setMostrarNombre("")}
-                        onClick={() => setMenuPuntos(!menuPuntos)}>
-                        <BsThreeDotsVertical className="text-xl" />
-                        {mostrarNombre === "Opciones" && (
-                            <span className="absolute top-9 right-0 bg-[#242626] text-white font-semibold text-xs py-1 px-2 rounded whitespace-nowrap">Opciones</span>
-                        )}
-                    </button>
-                </div>
-            </div>
 
-            
-            <div className="flex-1 overflow-y-auto relative"
-                style={{ backgroundImage: `url(${fondo})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+                    {/* Buscar */}
+                    <button
+                        className="p-2 rounded-full hover:bg-gray-200 transition relative group"
+                        title="Buscar"
+                    >
+                        <IoSearchOutline className="text-xl text-gray-600" />
+                        <span className="absolute top-10 right-0 bg-[#242626] text-white text-xs py-1 px-2 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none">Buscar</span>
+                    </button>
 
-                <div className="flex flex-col gap-1 px-4 py-4 pb-20">
-                    {mensajes.length === 0 && (
-                        <div className="flex justify-center mt-10">
-                            <span className="bg-white/80 text-gray-500 text-xs px-4 py-2 rounded-full shadow">
-                                No hay mensajes aún. ¡Di hola! 👋
-                            </span>
-                        </div>
-                    )}
-                    {mensajes.map((msg) => {
-                        const esMio = msg.de === usuarioActual?.telefono
-                        return (
-                            <div key={msg.id} className={`flex ${esMio ? "justify-end" : "justify-start"}`}>
-                                <div className={`max-w-[80%] md:max-w-[65%] px-3 py-2 rounded-xl shadow-sm ${esMio ? "bg-[#d9fdd3] rounded-br-none" : "bg-white rounded-bl-none"}`}>
-                                    <p className="text-[#111b21] text-sm leading-relaxed">{msg.texto}</p>
-                                    <p className="text-[10px] text-gray-400 text-right mt-1">{formatearHora(msg.fecha)}</p>
-                                </div>
-                            </div>
-                        )
-                    })}
-                    <div ref={bottomRef} />
-                </div>
-
-                {/* Input */}
-                <div className="w-[95%] rounded-full bg-[#f0f2f5] px-3 py-3 flex justify-between items-center gap-3 absolute bottom-2 left-[2.5%] shadow-[0px_8px_20px_rgba(0,0,0,0.25)] z-10">
-                    <div className="flex gap-3 w-full">
-                        <button className="relative hover:bg-gray-200 rounded-full transition cursor-pointer">
-                            <HiPlus size={"20px"}
-                                onClick={(e) => { e.stopPropagation(); setAbrirMenu(!abrirMenu) }}
-                                onMouseEnter={() => setMostrarNombre("Adjuntar")}
-                                onMouseLeave={() => setMostrarNombre("")}
-                            />
-                            {mostrarNombre === "Adjuntar" && (
-                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#242626] text-white font-semibold text-xs py-1 px-2 rounded whitespace-nowrap">Adjuntar</span>
-                            )}
+                    {/* Tres puntos */}
+                    <div className="relative" ref={menupuntosRef}>
+                        <button
+                            className="p-2 rounded-full hover:bg-gray-200 transition relative group"
+                            onClick={() => setMenuPuntos(!menuPuntos)}
+                        >
+                            <BsThreeDotsVertical className="text-xl text-gray-600" />
+                            <span className="absolute top-10 right-0 bg-[#242626] text-white text-xs py-1 px-2 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none">Más opciones</span>
                         </button>
-
-                        {abrirMenu && (
-                            <div ref={menuRef} className="absolute bottom-16 left-5 bg-white rounded-xl shadow-lg p-3 w-64">
-                                {menuItems.map((item, index) => (
-                                    <div key={index} onClick={() => setAbrirMenu(false)}
-                                        className="flex items-center gap-3 p-1 rounded-lg hover:bg-gray-100 cursor-pointer transition">
-                                        {item.icon}
-                                        <span className="text-sm">{item.label}</span>
+                        {menuPuntos && (
+                            <div className="absolute right-0 top-12 z-50 bg-white rounded-lg shadow-xl py-2 min-w-[200px] border border-gray-100">
+                                {opcionesMenuPuntos.map((op) => (
+                                    <div
+                                        key={op}
+                                        onClick={() => setMenuPuntos(false)}
+                                        className={`px-4 py-2.5 text-sm cursor-pointer hover:bg-gray-100 transition
+                                            ${op === "Bloquear" || op === "Reportar" || op === "Eliminar chat" ? "text-red-500 hover:bg-red-50" : "text-[#111b21]"}`}
+                                    >
+                                        {op}
                                     </div>
                                 ))}
                             </div>
                         )}
+                    </div>
+                </div>
+            </div>
 
-                        <button className="relative hover:bg-gray-200 rounded-full transition cursor-pointer">
-                            <TbSticker size={"20px"}
-                                onMouseEnter={() => setMostrarNombre("Emojis, Gifs, Stickers")}
-                                onMouseLeave={() => setMostrarNombre("")}
-                                onClick={(e) => { e.stopPropagation(); setMostrarEmoji(!mostrarEmoji) }}
-                            />
-                            {mostrarNombre === "Emojis, Gifs, Stickers" && (
-                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#242626] text-white font-semibold text-xs py-1 px-2 rounded whitespace-nowrap">Emojis, Gifs, Stickers</span>
-                            )}
-                            {mostrarEmoji && (
-                                <div ref={emojiRef} className="absolute bottom-9 left-1 shadow-lg">
-                                    <EmojiPicker onEmojiClick={(emojiData) => setMensaje(mensaje + emojiData.emoji)} />
+            {/* ── ÁREA DE MENSAJES ── */}
+            <div
+                className="flex-1 overflow-y-auto"
+                style={{
+                    backgroundImage: `url(${fondo})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                }}
+            >
+                <div className="flex flex-col gap-0.5 px-4 py-3 pb-4 min-h-full">
+
+                    {/* Sin mensajes */}
+                    {mensajes.length === 0 && (
+                        <div className="flex justify-center my-4">
+                            <div className="bg-[#fffde7] text-[#54656f] text-xs px-4 py-2 rounded-lg shadow-sm text-center max-w-xs">
+                                🔒 Los mensajes están cifrados de extremo a extremo.<br />
+                                Nadie fuera de este chat puede leerlos.
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Mensajes agrupados por fecha */}
+                    {items.map((item) => {
+                        if (item.tipo === "fecha") {
+                            return (
+                                <div key={item.key} className="flex justify-center my-3">
+                                    <span className="bg-white/90 text-[#54656f] text-[11px] font-medium px-3 py-1 rounded-lg shadow-sm capitalize">
+                                        {item.label}
+                                    </span>
                                 </div>
-                            )}
-                        </button>
+                            )
+                        }
 
-                        <input
-                            type="text"
-                            placeholder="Escribe un mensaje"
-                            className="pl-1 w-full rounded-full outline-none text-sm caret-green-500 bg-transparent"
-                            value={mensaje}
-                            onChange={(e) => setMensaje(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                        />
+                        const esMio = item.de === usuarioActual?.telefono
+                        return (
+                            <div
+                                key={item.id}
+                                className={`flex ${esMio ? "justify-end" : "justify-start"} mb-0.5`}
+                            >
+                                <div
+                                    className={`
+                                        relative max-w-[75%] md:max-w-[60%] lg:max-w-[55%]
+                                        px-3 pt-2 pb-1.5 shadow-sm
+                                        ${esMio
+                                            ? "bg-[#d9fdd3] rounded-tl-2xl rounded-tr-sm rounded-bl-2xl rounded-br-2xl"
+                                            : "bg-white rounded-tl-sm rounded-tr-2xl rounded-bl-2xl rounded-br-2xl"
+                                        }
+                                    `}
+                                    style={{
+                                        // Cola del globo
+                                        ...(esMio ? {
+                                            borderTopRightRadius: "4px",
+                                        } : {
+                                            borderTopLeftRadius: "4px",
+                                        })
+                                    }}
+                                >
+                                    {/* Texto del mensaje */}
+                                    <p className="text-[#111b21] text-[14.5px] leading-relaxed break-words whitespace-pre-wrap pr-10">
+                                        {item.texto}
+                                    </p>
+
+                                    {/* Hora + check */}
+                                    <div className="flex items-center justify-end gap-1 mt-0.5 -mb-0.5">
+                                        <span className="text-[11px] text-[#667781] leading-none">
+                                            {formatearHora(item.fecha)}
+                                        </span>
+                                        {esMio && (
+                                            <BsCheck2All className="text-[#53bdeb] text-sm" />
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    })}
+
+                    {/* Indicador "escribiendo..." (futuro) */}
+                    <div ref={bottomRef} />
+                </div>
+            </div>
+
+            {/* ── INPUT DE MENSAJE ── */}
+            <div className="flex-shrink-0 bg-[#f0f2f5] px-2 py-2 flex items-end gap-2">
+
+                {/* Botones izquierdos */}
+                <div className="flex items-center gap-1 mb-1.5">
+                    {/* Emoji */}
+                    <div className="relative" ref={emojiRef}>
+                        <button
+                            className="p-2 rounded-full hover:bg-gray-200 transition text-gray-600"
+                            onClick={() => { setMostrarEmoji(!mostrarEmoji); setAbrirMenu(false) }}
+                            title="Emojis"
+                        >
+                            <TbSticker size={22} />
+                        </button>
+                        {mostrarEmoji && (
+                            <div className="absolute bottom-12 left-0 z-50 shadow-2xl">
+                                <EmojiPicker
+                                    onEmojiClick={(emojiData) => {
+                                        setMensaje(prev => prev + emojiData.emoji)
+                                        inputRef.current?.focus()
+                                    }}
+                                    height={380}
+                                    width={320}
+                                    searchPlaceholder="Buscar emoji..."
+                                />
+                            </div>
+                        )}
                     </div>
 
-                    <button
-                        onClick={enviarMensaje}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-green-600 text-white hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer">
-                        <IoMic size="24px" className={mensaje ? "hidden" : "block"} />
-                        <IoSend className={mensaje ? "block" : "hidden"} />
-                    </button>
+                    {/* Adjuntar */}
+                    <div className="relative" ref={menuRef}>
+                        <button
+                            className="p-2 rounded-full hover:bg-gray-200 transition text-gray-600"
+                            onClick={() => { setAbrirMenu(!abrirMenu); setMostrarEmoji(false) }}
+                            title="Adjuntar"
+                        >
+                            <HiPlus size={22} />
+                        </button>
+                        {abrirMenu && (
+                            <div className="absolute bottom-12 left-0 z-50 bg-white rounded-2xl shadow-2xl py-2 w-56 border border-gray-100">
+                                {menuItems.map((item, index) => (
+                                    <div
+                                        key={index}
+                                        onClick={() => setAbrirMenu(false)}
+                                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer transition"
+                                    >
+                                        <span className="w-8 flex justify-center">{item.icon}</span>
+                                        <span className="text-sm text-[#111b21]">{item.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
+
+                {/* Campo de texto */}
+                <div className="flex-1 bg-white rounded-3xl px-4 py-2 flex items-end min-h-[44px] shadow-sm">
+                    <textarea
+                        ref={inputRef}
+                        rows={1}
+                        placeholder="Escribe un mensaje"
+                        className="w-full outline-none text-[14.5px] text-[#111b21] placeholder-gray-400 resize-none bg-transparent leading-6 max-h-[120px] overflow-y-auto"
+                        style={{ scrollbarWidth: "none" }}
+                        value={mensaje}
+                        onChange={(e) => {
+                            setMensaje(e.target.value)
+                            // Auto-resize
+                            e.target.style.height = "auto"
+                            e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"
+                        }}
+                        onKeyDown={handleKeyDown}
+                    />
+                </div>
+
+                {/* Botón enviar / micrófono */}
+                <button
+                    onClick={mensaje.trim() ? enviarMensaje : undefined}
+                    disabled={enviando}
+                    className={`
+                        mb-0.5 w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full text-white
+                        transition-all duration-150
+                        ${mensaje.trim()
+                            ? "bg-[#00a884] hover:bg-[#00916e] active:scale-95 shadow-md"
+                            : "bg-[#00a884] cursor-default"
+                        }
+                        ${enviando ? "opacity-70" : ""}
+                    `}
+                >
+                    {mensaje.trim()
+                        ? <IoSend size={18} className="ml-0.5" />
+                        : <IoMic size={20} />
+                    }
+                </button>
             </div>
         </div>
     )

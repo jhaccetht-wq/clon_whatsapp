@@ -7,7 +7,7 @@ import { MdAdd } from "react-icons/md"
 import Conversacion from "../components/Conversacion"
 import NuevoChat from "../components/NuevoChat"
 import { HiOutlineLogout, HiUserAdd } from "react-icons/hi"
-import { collection, getDocs } from "firebase/firestore"
+import { collection, getDocs, onSnapshot, doc, getDoc, query, orderBy, limit } from "firebase/firestore"
 import { db } from "../config/firebase"
 import { useUser } from "../context/UserContext"
 
@@ -24,6 +24,8 @@ export default function Chats({ onLogout }) {
     const [mostrarMenu, setMostrarMenu] = useState(false)
     const [mostrarOpcion, setMostrarOpcion] = useState("")
     const [mostrarNuevoChat, setMostrarNuevoChat] = useState(false)
+    // chatsActivos: { chatId -> { ultimoMensaje, hora, contacto } }
+    const [chatsActivos, setChatsActivos] = useState({})
 
     const menuRef = useRef(null)
     const timeoutRef = useRef(null)
@@ -39,6 +41,7 @@ export default function Chats({ onLogout }) {
         { id: 7, texto: "Cerrar sesión", icon: <HiOutlineLogout />, onClick: onLogout },
     ]
 
+    // Cargar lista de contactos
     useEffect(() => {
         const cargarContactos = async () => {
             const snapshot = await getDocs(collection(db, "users"))
@@ -47,6 +50,48 @@ export default function Chats({ onLogout }) {
         }
         cargarContactos()
     }, [])
+
+    // Escuchar chats activos del usuario actual en tiempo real
+    useEffect(() => {
+        if (!userData?.telefono || contactos.length === 0) return
+
+        const otrosContactos = contactos.filter(c => c.telefono !== userData.telefono)
+        const unsubscribers = []
+
+        otrosContactos.forEach((contacto) => {
+            const chatId = [userData.telefono, contacto.telefono].sort().join("_")
+            const q = query(
+                collection(db, "chats", chatId, "messages"),
+                orderBy("fecha", "desc"),
+                limit(1)
+            )
+
+            const unsub = onSnapshot(q, (snapshot) => {
+                if (!snapshot.empty) {
+                    const ultimoDoc = snapshot.docs[0].data()
+                    setChatsActivos(prev => ({
+                        ...prev,
+                        [chatId]: {
+                            contacto,
+                            ultimoMensaje: ultimoDoc.texto || "",
+                            hora: ultimoDoc.fecha,
+                        }
+                    }))
+                } else {
+                    // Si no hay mensajes, eliminamos de chatsActivos si existía
+                    setChatsActivos(prev => {
+                        const nuevo = { ...prev }
+                        delete nuevo[chatId]
+                        return nuevo
+                    })
+                }
+            })
+
+            unsubscribers.push(unsub)
+        })
+
+        return () => unsubscribers.forEach(u => u())
+    }, [userData, contactos])
 
     useEffect(() => {
         function cerrarTodo(e) {
@@ -57,11 +102,38 @@ export default function Chats({ onLogout }) {
         return () => document.removeEventListener("mousedown", cerrarTodo)
     }, [])
 
+    const formatearHora = (fecha) => {
+        if (!fecha) return ""
+        const d = fecha.toDate ? fecha.toDate() : new Date(fecha)
+        return d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })
+    }
+
     const miChat = userData ? [{ ...userData, id: userData.docId, esMio: true }] : []
-    const otrosContactos = contactos.filter(
-    (c) => c.telefono !== userData?.telefono && c.id !== userData?.docId
-)
-    const listaCompleta = [...miChat, ...otrosContactos]
+
+    // Contactos con chat activo (ordenados por hora del último mensaje, más reciente primero)
+    const chatsActivosOrdenados = Object.values(chatsActivos).sort((a, b) => {
+        const ta = a.hora?.toMillis?.() || 0
+        const tb = b.hora?.toMillis?.() || 0
+        return tb - ta
+    })
+
+    // Contactos sin chat activo (todos los demás)
+    const telefonosConChat = new Set(chatsActivosOrdenados.map(c => c.contacto.telefono))
+    const otrosSinChat = contactos.filter(
+        c => c.telefono !== userData?.telefono && !telefonosConChat.has(c.telefono)
+    )
+
+    // Lista completa: yo primero, luego chats activos, luego sin chat
+    const listaCompleta = [
+        ...miChat,
+        ...chatsActivosOrdenados.map(entry => ({
+            ...entry.contacto,
+            _ultimoMensaje: entry.ultimoMensaje,
+            _hora: entry.hora,
+        })),
+        ...otrosSinChat,
+    ]
+
     const listaFiltrada = listaCompleta.filter((c) =>
         c.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
         c.telefono?.includes(busqueda)
@@ -70,7 +142,7 @@ export default function Chats({ onLogout }) {
     return (
         <div className="flex h-[calc(100vh-56px)] md:h-screen overflow-hidden">
 
-            {/* Panel NuevoChat — reemplaza la columna izquierda cuando está abierto */}
+            {/* Panel NuevoChat */}
             {mostrarNuevoChat && (
                 <NuevoChat
                     onClose={() => setMostrarNuevoChat(false)}
@@ -172,11 +244,23 @@ export default function Chats({ onLogout }) {
                                             {contacto.nombre}
                                             {contacto.esMio && <span className="text-gray-400 font-normal text-sm ml-1">(Tú)</span>}
                                         </span>
-                                        <span className="text-xs text-gray-400 ml-2 flex-shrink-0">Hoy</span>
+                                        {/* Hora del último mensaje */}
+                                        {contacto._hora && (
+                                            <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
+                                                {formatearHora(contacto._hora)}
+                                            </span>
+                                        )}
+                                        {!contacto._hora && (
+                                            <span className="text-xs text-gray-400 ml-2 flex-shrink-0"></span>
+                                        )}
                                     </div>
                                     <div className="flex justify-between items-center mt-0.5">
                                         <span className="text-sm text-gray-500 truncate">
-                                            {contacto.esMio ? "Mensajes guardados" : (contacto.Estado || "")}
+                                            {contacto.esMio
+                                                ? "Mensajes guardados"
+                                                : contacto._ultimoMensaje
+                                                    ? contacto._ultimoMensaje
+                                                    : (contacto.Estado || "")}
                                         </span>
                                         {mostrarFlecha === contacto.id && (
                                             <BsChevronDown className="text-gray-400 text-sm flex-shrink-0 ml-1"
