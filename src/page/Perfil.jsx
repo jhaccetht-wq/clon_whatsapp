@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { HiPencil, HiUser, HiCamera, HiCheck, HiX } from "react-icons/hi2";
+import { HiPencil, HiUser, HiCamera, HiCheck, HiXMark } from "react-icons/hi2";
 import { doc, setDoc, collection, getDocs, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "../config/firebase";
@@ -189,7 +189,7 @@ export default function Perfil() {
                   onMouseDown={(e) => { e.preventDefault(); setEditandoNombre(false); }}
                   className="text-gray-400 hover:text-gray-600 transition p-1 rounded-full hover:bg-gray-100"
                 >
-                  <HiX size={18} />
+                  <HiXMark size={18} />
                 </button>
               </div>
             ) : (
@@ -249,7 +249,7 @@ export default function Perfil() {
                   onMouseDown={(e) => { e.preventDefault(); setEditandoEstado(false); }}
                   className="text-gray-400 hover:text-gray-600 transition p-1 rounded-full hover:bg-gray-100"
                 >
-                  <HiX size={18} />
+                  <HiXMark size={18} />
                 </button>
               </div>
             ) : (
