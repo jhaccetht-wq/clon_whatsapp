@@ -167,10 +167,12 @@ export default function Conversacion({ contacto, usuarioActual, onBack }) {
     return d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
   }
 
-  const formatearHora = (fecha) => {
+const formatearHora = (fecha) => {
     if (!fecha) return ""
     const d = fecha.toDate ? fecha.toDate() : new Date(fecha)
-    return d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })
+    const hora = d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })
+    const fechaStr = d.toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "2-digit" })
+    return `${fechaStr}, ${hora}`
   }
 
   // Filtrar mensajes si hay búsqueda activa
