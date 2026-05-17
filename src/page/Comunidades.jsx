@@ -70,7 +70,7 @@ export default function Comunidades() {
                             <div className="pl-4 pr-4 pb-2">
                                 {comunidad.canales.map((canal, i) => (
                                     <div key={i} className="flex items-center gap-3 py-2 px-2 hover:bg-gray-100 rounded-lg cursor-pointer transition">
-                                        <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                                        <div className="w-10 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                                             <MdGroup size={18} className="text-green-600" />
                                         </div>
                                         <div className="flex-1 min-w-0">

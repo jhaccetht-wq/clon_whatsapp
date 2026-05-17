@@ -11,9 +11,10 @@ import Perfil from "../page/Perfil";
 import Login from "../components/Login";
 
 export default function AppRouter() {
-  const [autenticado, setAutenticado] = useState(
-    () => localStorage.getItem("autenticado") === "true"
-  );
+ const [autenticado, setAutenticado] = useState(
+() => localStorage.getItem("autenticado") === "true"
+
+ )
 
   const handleLogin = () => {
     localStorage.setItem("autenticado", "true");
