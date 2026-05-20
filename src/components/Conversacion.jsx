@@ -345,15 +345,15 @@ export default function Conversacion({ contacto, usuarioActual, onBack }) {
                   </p>
 
                   <div className="flex items-center justify-end gap-1 mt-0.5 -mb-0.5 select-none">
-                    <span className="text-[11px] text-amber-800">{item.leido}    </span>
+                    <span className="text-[11px] text-amber-800">{item.leido}  </span>
                     <span className="text-[11px] text-[#667781] leading-none">
                       {formatearHora(item.fecha)}
                     </span>
-                    {esMio && (
+                    {/* {esMio && (
                       item.leido
                         ? <BsCheck2All className="text-[#53bdeb] text-[14px]" />
                         : <BsCheck2 className="text-[#667781] text-[14px]" />
-                    )}
+                    )} */}
                   </div>
                 </div>
               </div>
