@@ -20,7 +20,6 @@ import {
 } from "firebase/firestore"
 import { db } from "../config/firebase"
 import fondo from "../assets/img/FondoW.jpg"
-import { timestampAdd } from "firebase/firestore/pipelines"
 
 export default function Conversacion({ contacto, usuarioActual, onBack }) {
 
@@ -111,7 +110,6 @@ export default function Conversacion({ contacto, usuarioActual, onBack }) {
 
     setMensaje("")
     setEnviando(true)
-    // Resetear altura del textarea
     if (inputRef.current) {
       inputRef.current.style.height = "auto"
     }
@@ -122,7 +120,7 @@ export default function Conversacion({ contacto, usuarioActual, onBack }) {
       await addDoc(collection(db, "chats", chatId, "messages"), {
         texto,
         de: usuarioActual?.telefono,
-        fecha: timestampAdd(),
+        fecha: serverTimestamp(), // ✅ CORREGIDO
         leido: false,
       })
     } catch (err) {
@@ -167,7 +165,7 @@ export default function Conversacion({ contacto, usuarioActual, onBack }) {
     return d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
   }
 
-const formatearHora = (fecha) => {
+  const formatearHora = (fecha) => {
     if (!fecha) return ""
     const d = fecha.toDate ? fecha.toDate() : new Date(fecha)
     const hora = d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })
@@ -182,17 +180,15 @@ const formatearHora = (fecha) => {
 
   const items = agruparPorFecha(mensajesFiltrados)
 
-  // ── Nombre a mostrar del contacto ───────────────────────────
   const nombreContacto = contacto?.nombre || contacto?.telefono
 
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden">
 
-      
+      {/* Header */}
       <div className="w-full bg-[#f0f2f5] flex items-center justify-between px-3 py-2 border-b border-gray-200 z-10 flex-shrink-0 shadow-sm">
 
         <div className="flex items-center gap-1 flex-1 min-w-0">
-          
           {onBack && (
             <button
               onClick={onBack}
@@ -202,7 +198,6 @@ const formatearHora = (fecha) => {
             </button>
           )}
 
-          {/* Avatar + info del contacto */}
           <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-200/60 px-2 py-1.5 rounded-xl transition min-w-0 flex-1">
             <div className="relative flex-shrink-0">
               <img
@@ -226,9 +221,7 @@ const formatearHora = (fecha) => {
           </div>
         </div>
 
-        {/* Acciones */}
         <div className="flex items-center gap-0.5 flex-shrink-0">
-          {/* Buscar */}
           {buscando ? (
             <div className="flex items-center gap-2 bg-white rounded-full px-3 py-1.5 shadow-sm" ref={busquedaRef}>
               <IoSearchOutline className="text-gray-400 text-lg flex-shrink-0" />
@@ -255,7 +248,6 @@ const formatearHora = (fecha) => {
             </button>
           )}
 
-          
           <button className="hidden sm:flex items-center gap-1.5 border border-gray-300 bg-white px-3 py-1.5 rounded-full hover:bg-gray-50 transition text-sm font-medium text-[#54656f] shadow-sm ml-1">
             <IoVideocamOutline className="text-lg" />
             <span>Llamar</span>
@@ -265,7 +257,6 @@ const formatearHora = (fecha) => {
             <IoVideocamOutline className="text-xl text-[#54656f]" />
           </button>
 
-          {/* Tres puntos */}
           <div className="relative" ref={menupuntosRef}>
             <button
               className="p-2 rounded-full hover:bg-gray-200 transition"
@@ -293,7 +284,7 @@ const formatearHora = (fecha) => {
         </div>
       </div>
 
-      {/* ══════════════════ ÁREA DE MENSAJES ══════════════════ */}
+      {/* Área de mensajes */}
       <div
         className="flex-1 overflow-y-auto"
         style={{
@@ -304,7 +295,6 @@ const formatearHora = (fecha) => {
       >
         <div className="flex flex-col px-4 py-3 min-h-full">
 
-          {/* Sin mensajes */}
           {mensajes.length === 0 && (
             <div className="flex justify-center my-6">
               <div className="bg-[#fffde7] text-[#54656f] text-xs px-5 py-2.5 rounded-xl shadow-sm text-center max-w-xs leading-relaxed">
@@ -314,7 +304,6 @@ const formatearHora = (fecha) => {
             </div>
           )}
 
-          {/* Aviso de búsqueda activa */}
           {busquedaTexto && (
             <div className="flex justify-center mb-3">
               <span className="bg-white/90 text-[#54656f] text-xs px-3 py-1 rounded-lg shadow-sm">
@@ -323,9 +312,7 @@ const formatearHora = (fecha) => {
             </div>
           )}
 
-          {/* Mensajes agrupados */}
           {items.map((item) => {
-            // Separador de fecha
             if (item.tipo === "fecha") {
               return (
                 <div key={item.key} className="flex justify-center my-3">
@@ -353,12 +340,10 @@ const formatearHora = (fecha) => {
                     }
                   `}
                 >
-                  {/* Texto */}
                   <p className="text-[#111b21] text-[14.2px] leading-relaxed break-words whitespace-pre-wrap pr-12 min-w-[60px]">
                     {item.texto}
                   </p>
 
-                  {/* Hora + status */}
                   <div className="flex items-center justify-end gap-1 mt-0.5 -mb-0.5 select-none">
                     <span className="text-[11px] text-[#667781] leading-none">
                       {formatearHora(item.fecha)}
@@ -374,18 +359,14 @@ const formatearHora = (fecha) => {
             )
           })}
 
-          
           <div ref={bottomRef} className="h-2" />
         </div>
       </div>
 
-      {/* ══════════════════ INPUT ══════════════════ */}
+      {/* Input */}
       <div className="flex-shrink-0 bg-[#f0f2f5] px-3 py-2 flex items-end gap-2">
 
-        {/* Botones izquierdos */}
         <div className="flex items-center gap-0.5 mb-1">
-
-          
           <div className="relative" ref={emojiRef}>
             <button
               title="Emojis"
@@ -410,7 +391,6 @@ const formatearHora = (fecha) => {
             )}
           </div>
 
-          {/* Menú adjuntar */}
           <div className="relative" ref={menuRef}>
             <button
               title="Adjuntar"
@@ -436,7 +416,6 @@ const formatearHora = (fecha) => {
           </div>
         </div>
 
-        {/* Textarea */}
         <div className="flex-1 bg-white rounded-3xl px-4 py-2.5 flex items-end min-h-[44px] shadow-sm border border-gray-100">
           <textarea
             ref={inputRef}
@@ -454,7 +433,6 @@ const formatearHora = (fecha) => {
           />
         </div>
 
-        
         <button
           onClick={mensaje.trim() ? enviarMensaje : undefined}
           disabled={enviando}
